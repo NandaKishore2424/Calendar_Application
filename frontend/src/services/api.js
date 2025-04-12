@@ -21,8 +21,15 @@ export const eventService = {
     return response.data;
   },
   createEvent: async (eventData) => {
-    const response = await api.post('/events', eventData);
-    return response.data;
+    console.log('Attempting to create event:', eventData);
+    try {
+      const response = await api.post('/events', eventData);
+      console.log('Event creation response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating event:', error.response?.data || error.message);
+      throw error;
+    }
   },
   updateEvent: async (id, eventData) => {
     const response = await api.put(`/events/${id}`, eventData);
@@ -45,8 +52,15 @@ export const goalService = {
     return response.data;
   },
   createGoal: async (goalData) => {
-    const response = await api.post('/goals', goalData);
-    return response.data;
+    console.log('Attempting to create goal:', goalData);
+    try {
+      const response = await api.post('/goals', goalData);
+      console.log('Goal creation response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating goal:', error.response?.data || error.message);
+      throw error;
+    }
   },
   updateGoal: async (id, goalData) => {
     const response = await api.put(`/goals/${id}`, goalData);

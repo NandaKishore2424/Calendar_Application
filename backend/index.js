@@ -15,7 +15,7 @@ const app = express();
 // Update the CORS configuration
 const corsOptions = {
   origin: [
-    'https://your-frontend-url.vercel.app',
+    'https://your-frontend-vercel-url.vercel.app', // This needs to be updated
     'http://localhost:3000'
   ],
   optionsSuccessStatus: 200
