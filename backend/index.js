@@ -12,14 +12,27 @@ connectDB();
 // Initialize Express
 const app = express();
 
+// Update the CORS configuration
+const corsOptions = {
+  origin: [
+    'https://your-frontend-url.vercel.app',
+    'http://localhost:3000'
+  ],
+  optionsSuccessStatus: 200
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Routes (will implement next)
-app.use('/api/events', require('./src/routes/events'));
-app.use('/api/goals', require('./src/routes/goals'));
-app.use('/api/tasks', require('./src/routes/tasks'));
+const eventRoutes = require('./src/routes/events');
+const goalRoutes = require('./src/routes/goals');
+const taskRoutes = require('./src/routes/tasks');
+
+app.use('/api/events', eventRoutes);
+app.use('/api/goals', goalRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -37,6 +50,18 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+
+// Add this to the bottom of your file
+process.on('unhandledRejection', (err) => {
+  console.log('UNHANDLED REJECTION! 💥 Shutting down...');
+  console.log(err.name, err.message);
+  server.close(() => {
+    process.exit(1);
+  });
+});
+
+// Export for serverless
+module.exports = app;
