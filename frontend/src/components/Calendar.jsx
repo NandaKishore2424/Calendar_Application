@@ -14,7 +14,7 @@ const Calendar = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [eventPreset, setEventPreset] = useState(null);
-  const [viewMode, setViewMode] = useState('day'); // day, week, month, year
+  const [viewMode, setViewMode] = useState('week'); // day, week, month, year
   
   // Generate time slots from 7 AM to 9 PM
   const timeSlots = generateTimeSlots(15, 7, 21);

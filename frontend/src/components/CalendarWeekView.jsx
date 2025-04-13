@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { deleteEvent } from '../redux/slices/eventsSlice';
 import { formatTime } from '../utils/dateUtils';
-import EventTile from './EventTile';
 
 const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
   const dispatch = useDispatch();
@@ -203,16 +202,74 @@ const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
               
               {/* Render events for this day */}
               {getDayEvents(day).map(event => {
+                // Parse the dates as they are in the database
                 const startTime = new Date(event.startTime);
-                const top = ((startTime.getHours() - 7) * 60) + (startTime.getMinutes());
+                
+                // Calculate top position based on hours since 7am (calendar start)
+                // Each hour is 60px tall
+                const hoursSince7am = startTime.getHours() - 7;
+                const minuteOffset = startTime.getMinutes();
+                const top = (hoursSince7am * 60) + minuteOffset;
+                
+                // Calculate height based on event duration
+                const endTime = new Date(event.endTime);
+                const durationMinutes = (endTime - startTime) / (1000 * 60);
+                const height = Math.max(durationMinutes, 30); // Minimum height of 30px
                 
                 return (
-                  <EventTile 
-                    key={event._id} 
-                    event={event}
-                    style={{ top: `${top}px` }}
-                    onDelete={() => handleDeleteEvent(event)}
-                  />
+                  <div 
+                    key={event._id}
+                    style={{
+                      position: 'absolute',
+                      top: `${top}px`,
+                      left: '4px',
+                      right: '4px',
+                      height: `${height}px`,
+                      backgroundColor: event.color || '#4f46e5',
+                      borderRadius: '4px',
+                      color: 'white',
+                      fontSize: '0.75rem',
+                      padding: '4px 8px',
+                      overflow: 'hidden',
+                      zIndex: 5,
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // You could add an event details modal here
+                    }}
+                  >
+                    <div style={{ fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {event.title}
+                    </div>
+                    <div style={{ fontSize: '0.7rem' }}>
+                      {formatTime(startTime)} - {formatTime(endTime)}
+                    </div>
+                    <button 
+                      style={{
+                        position: 'absolute',
+                        top: '2px',
+                        right: '2px',
+                        backgroundColor: 'rgba(255,255,255,0.3)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        width: '16px',
+                        height: '16px',
+                        fontSize: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer'
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteEvent(event);
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 );
               })}
             </div>
