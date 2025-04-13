@@ -35,28 +35,18 @@ const EventModal = ({ onClose, initialTime, selectedDate, preset }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Convert time strings to Date objects
-    const startDate = new Date(selectedDate);
-    const [startHours, startMinutes] = eventData.startTime.split(':').map(Number);
-    startDate.setHours(startHours, startMinutes, 0, 0);
+    // Create a new Date object with the date part only
+    const dateStr = selectedDate.split('T')[0]; // Make sure we only have YYYY-MM-DD
     
-    const endDate = new Date(selectedDate);
-    const [endHours, endMinutes] = eventData.endTime.split(':').map(Number);
-    endDate.setHours(endHours, endMinutes, 0, 0);
-    
-    // Create the event with optional color from task
+    // Create the event with ISO string but preserve timezone offset
     const eventToCreate = {
       title: eventData.title,
       category: eventData.category,
-      startTime: startDate.toISOString(),
-      endTime: endDate.toISOString(),
-      date: selectedDate
+      // Store both the time components and the date separately
+      startTime: `${dateStr}T${eventData.startTime}:00`,
+      endTime: `${dateStr}T${eventData.endTime}:00`,
+      date: dateStr
     };
-    
-    // If we have a custom color from a task, use it
-    if (eventData.color) {
-      eventToCreate.color = eventData.color;
-    }
     
     dispatch(createEvent(eventToCreate));
     onClose();

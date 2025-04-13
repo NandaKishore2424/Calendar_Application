@@ -57,7 +57,9 @@ exports.getEvent = async (req, res) => {
 // Create event
 exports.createEvent = async (req, res) => {
   try {
+    // Create event from request body directly without time manipulation
     const event = await Event.create(req.body);
+    
     res.status(201).json({
       success: true,
       data: event

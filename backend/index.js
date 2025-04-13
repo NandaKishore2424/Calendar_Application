@@ -15,10 +15,12 @@ const app = express();
 // Update the CORS configuration
 const corsOptions = {
   origin: [
-    'https://your-frontend-vercel-url.vercel.app', // This needs to be updated
+    'https://frontend-azure-omega-21.vercel.app', // Your actual frontend URL
     'http://localhost:3000'
   ],
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 
 // Middleware
