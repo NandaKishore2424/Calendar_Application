@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { deleteEvent } from '../redux/slices/eventsSlice';
 import { formatTime } from '../utils/dateUtils';
 import EventTile from './EventTile';
 
 const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
+  const dispatch = useDispatch();
   const [hoveredSlot, setHoveredSlot] = useState(null);
   
   // Generate days for the week (starting from Sunday)
@@ -143,6 +146,12 @@ const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
            date.getFullYear() === today.getFullYear();
   };
   
+  const handleDeleteEvent = (event) => {
+    if (window.confirm(`Are you sure you want to delete "${event.title}"?`)) {
+      dispatch(deleteEvent(event._id));
+    }
+  };
+
   return (
     <div style={weekViewContainerStyle}>
       {/* Day Headers */}
@@ -202,6 +211,7 @@ const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
                     key={event._id} 
                     event={event}
                     style={{ top: `${top}px` }}
+                    onDelete={() => handleDeleteEvent(event)}
                   />
                 );
               })}

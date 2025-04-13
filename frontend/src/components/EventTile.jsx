@@ -72,8 +72,35 @@ const EventTile = ({ event }) => {
   // Delete event
   const handleDelete = (e) => {
     e.stopPropagation();
-    if (window.confirm('Are you sure you want to delete this event?')) {
+    
+    // Create a custom confirmation dialog instead of the basic window.confirm
+    const confirmDelete = () => {
       dispatch(deleteEvent(event._id));
+      
+      // Show temporary success message
+      const successMessage = document.createElement('div');
+      successMessage.textContent = 'Event deleted';
+      successMessage.style.position = 'fixed';
+      successMessage.style.bottom = '20px';
+      successMessage.style.right = '20px';
+      successMessage.style.backgroundColor = '#10B981';
+      successMessage.style.color = 'white';
+      successMessage.style.padding = '10px 20px';
+      successMessage.style.borderRadius = '4px';
+      successMessage.style.zIndex = '9999';
+      successMessage.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.1)';
+      
+      document.body.appendChild(successMessage);
+      
+      // Remove after 3 seconds
+      setTimeout(() => {
+        document.body.removeChild(successMessage);
+      }, 3000);
+    };
+    
+    // Show dialog (customize to match your app's design)
+    if (window.confirm(`Are you sure you want to delete "${event.title}"?`)) {
+      confirmDelete();
     }
   };
   
@@ -88,6 +115,13 @@ const EventTile = ({ event }) => {
   
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          handleDelete(e);
+        }
+      }}
       style={eventTileStyle}
       onClick={handleToggleExpand}
       onMouseEnter={() => setIsHovered(true)}
@@ -147,26 +181,7 @@ const EventTile = ({ event }) => {
           </div>
           
           {event.isExpanded && (
-            <button 
-              style={{
-                alignSelf: 'flex-end',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                backgroundColor: 'rgba(239, 68, 68, 0.9)',
-                color: 'white',
-                fontSize: '0.75rem',
-                border: 'none',
-                cursor: 'pointer',
-                marginTop: '4px',
-                fontWeight: '500',
-                transition: 'background-color 0.2s ease'
-              }}
-              onMouseEnter={e => e.target.style.backgroundColor = 'rgba(220, 38, 38, 1)'}
-              onMouseLeave={e => e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.9)'}
-              onClick={handleDelete}
-            >
-              Delete
-            </button>
+            <DeleteButton onDelete={handleDelete} isVisible={event.isExpanded} />
           )}
         </div>
       )}
@@ -178,6 +193,35 @@ const EventTile = ({ event }) => {
         }
       `}</style>
     </div>
+  );
+};
+
+const DeleteButton = ({ onDelete, isVisible }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  
+  return (
+    <button 
+      style={{
+        opacity: isVisible ? 1 : 0,
+        backgroundColor: isHovered ? 'rgba(239, 68, 68, 0.9)' : 'rgba(239, 68, 68, 0.7)',
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        padding: '4px 8px',
+        fontSize: '0.75rem',
+        fontWeight: '500',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px'
+      }}
+      onClick={onDelete}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      <span style={{ fontSize: '0.875rem' }}>✕</span> Delete
+    </button>
   );
 };
 
