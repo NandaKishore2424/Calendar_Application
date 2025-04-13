@@ -4,7 +4,6 @@
 
 Calendar+ is a full-stack web application for managing your schedule, goals, and tasks in one unified interface. This modern productivity tool combines calendar functionality with goal-setting and task management, making it perfect for personal and professional use.
 
-![Calendar+ Screenshot](https://your-screenshot-url.com/)
 
 **Live Demo:** [https://frontend-azure-omega-21.vercel.app/](https://frontend-azure-omega-21.vercel.app/)
 
@@ -102,4 +101,32 @@ Clean, modern UI with smooth animations
 
 ```bash
 git clone https://github.com/yourusername/calendar-plus.git  
-cd calendar-plus  
+cd calendar-plus
+
+```
+
+
+### Backend Setup
+
+```bash
+cd backend  
+npm install
+```
+### Create a .env file with the following:
+```bash
+MONGODB_URI=your_mongodb_connection_string  
+PORT=5000  
+```
+```bash
+npm run dev  
+```
+### Frontend Setup
+```bash
+cd frontend  
+npm install  
+npm start  
+```
+## 👥 Contributing
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+
