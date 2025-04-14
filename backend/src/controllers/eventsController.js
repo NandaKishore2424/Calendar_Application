@@ -3,20 +3,9 @@ const Event = require('../models/Event');
 // Get all events
 exports.getEvents = async (req, res) => {
   try {
-    // Filter by date if provided in query
-    const filter = {};
-    if (req.query.date) {
-      const date = new Date(req.query.date);
-      const nextDay = new Date(date);
-      nextDay.setDate(date.getDate() + 1);
-      
-      filter.date = {
-        $gte: new Date(date.setHours(0, 0, 0, 0)),
-        $lt: new Date(nextDay.setHours(0, 0, 0, 0))
-      };
-    }
+   
+    const events = await Event.find({}).sort({ startTime: 1 }); 
     
-    const events = await Event.find(filter).sort({ startTime: 1 });
     res.status(200).json({
       success: true,
       count: events.length,
@@ -57,7 +46,6 @@ exports.getEvent = async (req, res) => {
 // Create event
 exports.createEvent = async (req, res) => {
   try {
-    // Create event from request body directly without time manipulation
     const event = await Event.create(req.body);
     
     res.status(201).json({

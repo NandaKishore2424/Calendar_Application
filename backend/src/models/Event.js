@@ -26,21 +26,22 @@ const eventSchema = new mongoose.Schema({
     }
   },
   date: {
-    type: Date,
-    required: [true, 'Date is required']
+    type: String,
+    required: [true, 'Date string (YYYY-MM-DD) is required'],
+    match: [/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format'] 
   },
   color: {
     type: String,
     default: function() {
       const colors = {
-        exercise: '#4CAF50', // green
-        eating: '#FF9800',   // orange
-        work: '#2196F3',     // blue
-        relax: '#9C27B0',    // purple
-        family: '#E91E63',   // pink
-        social: '#FF5722'    // deep orange
+        exercise: '#4CAF50', 
+        eating: '#FF9800',   
+        work: '#2196F3',     
+        relax: '#9C27B0',    
+        family: '#E91E63',   
+        social: '#FF5722'    
       };
-      return colors[this.category] || '#607D8B'; // default gray
+      return colors[this.category] || '#607D8B'; 
     }
   },
   isExpanded: {
@@ -53,8 +54,6 @@ const eventSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Index for efficient queries
-eventSchema.index({ date: 1, startTime: 1 });
 
 const Event = mongoose.model('Event', eventSchema);
 

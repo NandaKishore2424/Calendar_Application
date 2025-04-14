@@ -97,7 +97,6 @@ exports.deleteGoal = async (req, res) => {
       });
     }
     
-    // This will trigger pre-remove hook if needed
     await goal.deleteOne();
     
     res.status(200).json({

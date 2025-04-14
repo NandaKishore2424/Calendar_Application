@@ -6,14 +6,12 @@ exports.getTasks = async (req, res) => {
   try {
     let query;
     
-    // If goalId is provided, filter tasks by that goal
     if (req.query.goalId) {
       query = Task.find({ goalId: req.query.goalId });
     } else {
       query = Task.find();
     }
     
-    // Add population of goal data if needed
     if (req.query.populate === 'true') {
       query = query.populate('goalId');
     }
@@ -60,7 +58,6 @@ exports.getTask = async (req, res) => {
 // Create task
 exports.createTask = async (req, res) => {
   try {
-    // Verify goal exists
     const goal = await Goal.findById(req.body.goalId);
     if (!goal) {
       return res.status(404).json({
@@ -72,7 +69,7 @@ exports.createTask = async (req, res) => {
     // Create task
     const task = await Task.create({
       ...req.body,
-      color: goal.color // Inherit color from goal
+      color: goal.color 
     });
     
     res.status(201).json({
@@ -99,7 +96,6 @@ exports.updateTask = async (req, res) => {
       });
     }
     
-    // If goalId is being updated, verify new goal exists
     if (req.body.goalId && req.body.goalId !== task.goalId.toString()) {
       const goal = await Goal.findById(req.body.goalId);
       if (!goal) {
@@ -108,7 +104,6 @@ exports.updateTask = async (req, res) => {
           error: 'New goal not found'
         });
       }
-      // Update color to match new goal
       req.body.color = goal.color;
     }
     

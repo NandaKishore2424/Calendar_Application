@@ -12,7 +12,6 @@ const goalSchema = new mongoose.Schema({
     required: [true, 'Color is required'],
     validate: {
       validator: function(value) {
-        // Simple hex color validation
         return /^#([0-9A-F]{3}){1,2}$/i.test(value);
       },
       message: 'Color must be a valid hex color code (e.g., #00CED1)'
@@ -24,7 +23,6 @@ const goalSchema = new mongoose.Schema({
   toObject: { virtuals: true }
 });
 
-// Virtual for tasks (link to tasks)
 goalSchema.virtual('tasks', {
   ref: 'Task',
   localField: '_id',
