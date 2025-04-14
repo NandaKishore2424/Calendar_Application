@@ -38,13 +38,22 @@ const EventModal = ({ onClose, initialTime, selectedDate, preset }) => {
     // Create a new Date object with the date part only
     const dateStr = selectedDate.split('T')[0]; // Make sure we only have YYYY-MM-DD
     
-    // Create the event with ISO string but preserve timezone offset
+    // Create start and end time Date objects and preserve local time
+    const [startHours, startMinutes] = eventData.startTime.split(':').map(Number);
+    const [endHours, endMinutes] = eventData.endTime.split(':').map(Number);
+    
+    // Create ISO strings but preserve local timezone information
+    const startDate = new Date(dateStr);
+    startDate.setHours(startHours, startMinutes, 0, 0);
+    
+    const endDate = new Date(dateStr);
+    endDate.setHours(endHours, endMinutes, 0, 0);
+    
     const eventToCreate = {
       title: eventData.title,
       category: eventData.category,
-      // Store both the time components and the date separately
-      startTime: `${dateStr}T${eventData.startTime}:00`,
-      endTime: `${dateStr}T${eventData.endTime}:00`,
+      startTime: startDate.toISOString(),
+      endTime: endDate.toISOString(),
       date: dateStr
     };
     

@@ -15,6 +15,7 @@ const Calendar = () => {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [eventPreset, setEventPreset] = useState(null);
   const [viewMode, setViewMode] = useState('week'); // day, week, month, year
+  const [draggedEvent, setDraggedEvent] = useState(null);
   
   // Generate time slots from 7 AM to 9 PM
   const timeSlots = generateTimeSlots(15, 7, 21);
@@ -23,6 +24,40 @@ const Calendar = () => {
   useEffect(() => {
     dispatch(fetchEvents(selectedDate));
   }, [dispatch, selectedDate]);
+  
+  // Add to useEffect in Calendar.jsx
+  useEffect(() => {
+    const handleCalendarDrop = (e) => {
+      const { date } = e.detail;
+      
+      // If dragging an event
+      if (draggedEvent) {
+        // Calculate duration from original event
+        const originalStart = new Date(draggedEvent.startTime);
+        const originalEnd = new Date(draggedEvent.endTime);
+        const duration = originalEnd.getTime() - originalStart.getTime();
+        
+        // Create new end time
+        const endTime = new Date(date.getTime() + duration);
+        
+        // Update event
+        dispatch(updateEvent({
+          id: draggedEvent.id,
+          eventData: {
+            startTime: date.toISOString(),
+            endTime: endTime.toISOString(),
+            date: date.toISOString().split('T')[0]
+          }
+        }));
+        
+        // Clear the dragged event after drop
+        setDraggedEvent(null);
+      }
+    };
+    
+    document.addEventListener('calendarDrop', handleCalendarDrop);
+    return () => document.removeEventListener('calendarDrop', handleCalendarDrop);
+  }, [dispatch, draggedEvent]);
   
   // Navigation functions
   const goToToday = () => {
@@ -426,7 +461,8 @@ const Calendar = () => {
           {!loading && events.map(event => (
             <EventTile 
               key={event._id} 
-              event={event} 
+              event={event}
+              onDragStart={setDraggedEvent}
             />
           ))}
           

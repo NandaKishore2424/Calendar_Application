@@ -3,7 +3,7 @@ import { useDispatch } from 'react-redux';
 import { toggleEventExpanded, deleteEvent } from '../redux/slices/eventsSlice';
 import { formatTime, getTimePosition, getEventHeight } from '../utils/dateUtils';
 
-const EventTile = ({ event }) => {
+const EventTile = ({ event, onDragStart }) => {
   const dispatch = useDispatch();
   const [isHovered, setIsHovered] = useState(false);
   
@@ -106,11 +106,17 @@ const EventTile = ({ event }) => {
   
   // Handle drag and drop
   const handleDragStart = (e) => {
-    e.dataTransfer.setData('text/plain', JSON.stringify({
+    const eventData = {
       id: event._id,
       startTime: event.startTime,
       endTime: event.endTime
-    }));
+    };
+    
+    e.dataTransfer.setData('text/plain', JSON.stringify(eventData));
+    
+    // Update the draggedEvent state in the parent Calendar component
+    // You'll need to pass this function as a prop to EventTile
+    onDragStart(eventData);
   };
   
   return (

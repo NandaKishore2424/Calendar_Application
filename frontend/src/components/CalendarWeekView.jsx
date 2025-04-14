@@ -182,7 +182,30 @@ const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
         {/* Days */}
         <div style={daysContainerStyle}>
           {weekDays.map((day, dayIndex) => (
-            <div key={dayIndex} style={dayColumnStyle(isToday(day))}>
+            <div 
+              key={dayIndex} 
+              style={dayColumnStyle(isToday(day))}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const rect = e.currentTarget.getBoundingClientRect();
+                const dropY = e.clientY - rect.top;
+                
+                // Calculate hour based on Y position
+                const dropHour = Math.floor(dropY / 60) + 7; // 7 is start hour
+                const dropMinutes = Math.round((dropY % 60) / 15) * 15;
+                
+                // Create date for the drop time
+                const dropDate = new Date(day);
+                dropDate.setHours(dropHour, dropMinutes, 0, 0);
+                
+                // Handle the drop with coordinates
+                const dropEvent = new CustomEvent('calendarDrop', {
+                  detail: { date: dropDate, dayIndex }
+                });
+                document.dispatchEvent(dropEvent);
+              }}
+            >
               {hours.map((hour, hourIndex) => {
                 const timeSlot = new Date(day);
                 timeSlot.setHours(hour.getHours(), 0, 0, 0);
@@ -202,18 +225,30 @@ const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
               
               {/* Render events for this day */}
               {getDayEvents(day).map(event => {
-                // Parse the dates as they are in the database
+                // Adjust event display time calculation
                 const startTime = new Date(event.startTime);
-                
-                // Calculate top position based on hours since 7am (calendar start)
-                // Each hour is 60px tall
-                const hoursSince7am = startTime.getHours() - 7;
-                const minuteOffset = startTime.getMinutes();
+                const endTime = new Date(event.endTime);
+
+                // Force these dates to be interpreted in local time zone
+                // by extracting hours and minutes and creating a new date
+                const getLocalHours = (dateObj) => {
+                  const hours = dateObj.getUTCHours();
+                  const minutes = dateObj.getUTCMinutes();
+                  const localDate = new Date(day);
+                  localDate.setHours(hours, minutes, 0, 0);
+                  return localDate;
+                };
+
+                const localStartTime = getLocalHours(startTime);
+                const localEndTime = getLocalHours(endTime);
+
+                // Calculate position using local time
+                const hoursSince7am = localStartTime.getHours() - 7;
+                const minuteOffset = localStartTime.getMinutes();
                 const top = (hoursSince7am * 60) + minuteOffset;
                 
                 // Calculate height based on event duration
-                const endTime = new Date(event.endTime);
-                const durationMinutes = (endTime - startTime) / (1000 * 60);
+                const durationMinutes = (localEndTime - localStartTime) / (1000 * 60);
                 const height = Math.max(durationMinutes, 30); // Minimum height of 30px
                 
                 return (
@@ -243,7 +278,7 @@ const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
                       {event.title}
                     </div>
                     <div style={{ fontSize: '0.7rem' }}>
-                      {formatTime(startTime)} - {formatTime(endTime)}
+                      {formatTime(localStartTime)} - {formatTime(localEndTime)}
                     </div>
                     <button 
                       style={{
