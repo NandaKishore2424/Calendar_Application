@@ -19,7 +19,7 @@ export const createEvent = createAsyncThunk(
   async (eventData, { rejectWithValue }) => {
     try {
       const response = await eventService.createEvent(eventData);
-      return response.data;
+      return response.data; 
     } catch (error) {
       return rejectWithValue(error.response?.data || error.message);
     }
@@ -55,7 +55,7 @@ const initialState = {
   events: [],
   loading: false,
   error: null,
-  selectedDate: new Date().toISOString().split('T')[0], // Today's date in YYYY-MM-DD format
+  selectedDate: new Date().toISOString().split('T')[0], 
 };
 
 // Create slice
@@ -95,11 +95,14 @@ const eventsSlice = createSlice({
         state.error = null;
       })
       .addCase(createEvent.fulfilled, (state, action) => {
-        state.events.push(action.payload);
         state.loading = false;
+        console.log("Adding event to state:", action.payload); 
+        state.events.push(action.payload); 
+        state.events.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
       })
       .addCase(createEvent.rejected, (state, action) => {
         state.loading = false;
+        console.error("Create Event Rejected:", action.payload); 
         state.error = action.payload;
       })
       // Update event

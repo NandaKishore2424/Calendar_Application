@@ -1,13 +1,10 @@
 import React, { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { deleteEvent } from '../redux/slices/eventsSlice';
 import { formatTime } from '../utils/dateUtils';
+import EventTile from './EventTile'; 
 
 const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
-  const dispatch = useDispatch();
   const [hoveredSlot, setHoveredSlot] = useState(null);
   
-  // Generate days for the week (starting from Sunday)
   const generateWeekDays = () => {
     const date = new Date(selectedDate);
     const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
@@ -25,21 +22,37 @@ const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
   
   const weekDays = generateWeekDays();
   
-  // Get hours for the day (7am to 10pm)
   const hours = [];
-  for (let i = 7; i <= 22; i++) {
+  for (let i = 0; i < 24; i++) { 
     const hourDate = new Date();
-    hourDate.setHours(i, 0, 0, 0);
+    hourDate.setHours(i, 0, 0, 0); 
     hours.push(hourDate);
   }
   
-  // Check if an event should be displayed on a specific day
   const getDayEvents = (date) => {
-    const dayStr = date.toISOString().split('T')[0];
+    const localDateStr = formatDateToYYYYMMDD(date);
+    if (!localDateStr) return [];
+
     return events.filter(event => {
-      const eventDate = new Date(event.date).toISOString().split('T')[0];
-      return eventDate === dayStr;
+      if (typeof event.date === 'string' && event.date.length === 10) { 
+        return event.date === localDateStr;
+      }
+      
+      console.warn(`Event ${event._id || event.id} missing or has invalid 'date' property. Falling back to startTime.`);
+      const eventStartDate = new Date(event.startTime);
+      return formatDateToYYYYMMDD(eventStartDate) === localDateStr;
     });
+  };
+  
+  const formatDateToYYYYMMDD = (date) => {
+    if (!(date instanceof Date)) {
+       date = new Date(date); 
+    }
+    if (isNaN(date.getTime())) { 
+       console.error("Invalid date passed to formatDateToYYYYMMDD:", date);
+       return null; 
+    }
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
   
   // Styles
@@ -108,16 +121,16 @@ const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
   const timeLabelStyle = {
     height: '60px',
     display: 'flex',
-    alignItems: 'flex-start',
+    alignItems: 'flex-start', 
     justifyContent: 'flex-end',
     paddingRight: '0.5rem',
     paddingTop: '0.25rem',
     fontSize: '0.75rem',
     color: '#64748b',
     position: 'relative',
-    fontWeight: '500'
+    fontWeight: '500',
   };
-  
+
   const daysContainerStyle = {
     display: 'flex',
     flex: 1
@@ -126,17 +139,16 @@ const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
   const dayColumnStyle = (isToday) => ({
     flex: 1,
     borderRight: '1px solid #e2e8f0',
-    position: 'relative',
-    backgroundColor: isToday ? 'rgba(240, 244, 255, 0.25)' : 'transparent'
+    position: 'relative', 
+    backgroundColor: isToday ? 'rgba(240, 244, 255, 0.25)' : 'transparent',
+    height: '100%', 
+    overflow: 'visible' 
   });
   
-  const hourCellStyle = (isHovered) => ({
-    height: '60px',
+  const hourCellStyle = {
+    height: '60px', 
     borderBottom: '1px solid #edf2f7',
-    cursor: 'pointer',
-    backgroundColor: isHovered ? 'rgba(79, 70, 229, 0.05)' : 'transparent',
-    transition: 'background-color 0.15s ease'
-  });
+  };
   
   const isToday = (date) => {
     const today = new Date();
@@ -144,10 +156,18 @@ const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
            date.getMonth() === today.getMonth() &&
            date.getFullYear() === today.getFullYear();
   };
-  
-  const handleDeleteEvent = (event) => {
-    if (window.confirm(`Are you sure you want to delete "${event.title}"?`)) {
-      dispatch(deleteEvent(event._id));
+
+  const getLocalTime = (event, timeProp, fallbackDate) => {
+    if (event[timeProp + 'Local']) {
+      const [hours, minutes] = event[timeProp + 'Local'].split(':').map(Number);
+      const localDate = new Date(fallbackDate);
+      localDate.setHours(hours, minutes, 0, 0);
+      return localDate;
+    } else {
+      const dateFromISO = new Date(event[timeProp]);
+      const localDate = new Date(fallbackDate);
+      localDate.setHours(dateFromISO.getHours(), dateFromISO.getMinutes(), 0, 0);
+      return localDate;
     }
   };
 
@@ -185,25 +205,70 @@ const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
             <div 
               key={dayIndex} 
               style={dayColumnStyle(isToday(day))}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
+              onClick={(e) => {
+                if (e.target !== e.currentTarget) return;
+                
                 const rect = e.currentTarget.getBoundingClientRect();
-                const dropY = e.clientY - rect.top;
+                const clickY = e.clientY - rect.top;
                 
-                // Calculate hour based on Y position
-                const dropHour = Math.floor(dropY / 60) + 7; // 7 is start hour
-                const dropMinutes = Math.round((dropY % 60) / 15) * 15;
+                const clickHour = Math.floor(clickY / 60); 
+                const clickMinutes = Math.round((clickY % 60) / 15) * 15; // Round to nearest 15 min
                 
-                // Create date for the drop time
-                const dropDate = new Date(day);
-                dropDate.setHours(dropHour, dropMinutes, 0, 0);
+                const clickTime = new Date(day);
+                clickTime.setHours(Math.min(clickHour, 23), clickMinutes, 0, 0);
                 
-                // Handle the drop with coordinates
-                const dropEvent = new CustomEvent('calendarDrop', {
-                  detail: { date: dropDate, dayIndex }
-                });
-                document.dispatchEvent(dropEvent);
+                onSlotClick({ time: clickTime });
+              }}
+              onDragOver={(e) => {
+                e.preventDefault(); 
+                e.currentTarget.style.backgroundColor = 'rgba(79, 70, 229, 0.05)'; // Visual feedback
+              }}
+              onDragLeave={(e) => {
+                e.currentTarget.style.backgroundColor = isToday(day) ? 'rgba(240, 244, 255, 0.25)' : 'transparent';
+              }}
+              onDrop={(e) => {
+                console.log('DROP DETECTED on day column');
+                e.preventDefault();
+                e.currentTarget.style.backgroundColor = isToday(day) ? 'rgba(240, 244, 255, 0.25)' : 'transparent';
+                
+                try {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const dropY = e.clientY - rect.top;
+                  
+                  const dropHour = Math.min(Math.max(Math.floor(dropY / 60), 0), 23); // Limit to 0-23
+                  const dropMinutes = Math.min(Math.max(Math.round((dropY % 60) / 15) * 15, 0), 45); // Limit to 0, 15, 30, 45
+                  
+                  console.log('Calculated drop position:', dropHour, ':', dropMinutes);
+                  
+                  const dropDate = new Date(day);
+                  console.log('Initial dropDate:', dropDate);
+                  
+                  if (isNaN(dropDate.getTime())) {
+                    console.error('Invalid day reference:', day);
+                    return;
+                  }
+                  
+                  dropDate.setHours(dropHour, dropMinutes, 0, 0);
+                  console.log('Final dropDate after setting hours:', dropDate);
+                  
+                  // Final validation check
+                  if (isNaN(dropDate.getTime())) {
+                    console.error('Invalid drop date created');
+                    return;
+                  }
+                  const dateCopy = new Date(dropDate.getTime());
+                  
+                  console.log('Creating calendarDrop event with date:', dateCopy);
+                  const dropEvent = new CustomEvent('calendarDrop', {
+                    detail: { date: dateCopy, dayIndex }
+                  });
+                  
+                  console.log('About to dispatch calendarDrop event');
+                  document.dispatchEvent(dropEvent);
+                  console.log('calendarDrop event dispatched');
+                } catch (err) {
+                  console.error('Error in drop handler:', err);
+                }
               }}
             >
               {hours.map((hour, hourIndex) => {
@@ -215,7 +280,10 @@ const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
                 return (
                   <div 
                     key={hourIndex} 
-                    style={hourCellStyle(hoveredSlot === slotId)}
+                    style={{
+                      ...hourCellStyle,
+                      backgroundColor: hoveredSlot === slotId ? 'rgba(79, 70, 229, 0.05)' : 'transparent'
+                    }}
                     onClick={() => onSlotClick({ time: timeSlot })}
                     onMouseEnter={() => setHoveredSlot(slotId)}
                     onMouseLeave={() => setHoveredSlot(null)}
@@ -225,86 +293,31 @@ const CalendarWeekView = ({ selectedDate, events, loading, onSlotClick }) => {
               
               {/* Render events for this day */}
               {getDayEvents(day).map(event => {
-                // Adjust event display time calculation
-                const startTime = new Date(event.startTime);
-                const endTime = new Date(event.endTime);
-
-                // Force these dates to be interpreted in local time zone
-                // by extracting hours and minutes and creating a new date
-                const getLocalHours = (dateObj) => {
-                  const hours = dateObj.getUTCHours();
-                  const minutes = dateObj.getUTCMinutes();
-                  const localDate = new Date(day);
-                  localDate.setHours(hours, minutes, 0, 0);
-                  return localDate;
-                };
-
-                const localStartTime = getLocalHours(startTime);
-                const localEndTime = getLocalHours(endTime);
-
-                // Calculate position using local time
-                const hoursSince7am = localStartTime.getHours() - 7;
-                const minuteOffset = localStartTime.getMinutes();
-                const top = (hoursSince7am * 60) + minuteOffset;
-                
-                // Calculate height based on event duration
-                const durationMinutes = (localEndTime - localStartTime) / (1000 * 60);
-                const height = Math.max(durationMinutes, 30); // Minimum height of 30px
-                
+                const localStartTime = getLocalTime(event, 'startTime', day);
+                const localEndTime = getLocalTime(event, 'endTime', day);
+              
+                const startMinutesPastMidnight = localStartTime.getHours() * 60 + localStartTime.getMinutes();
+                const gridStartMinutes = 0; 
+                const top = startMinutesPastMidnight - gridStartMinutes;
+              
+                console.log('Event:', event.title, 'Top:', top, 'Start Time:', localStartTime);
+              
+                const durationMinutes = (localEndTime.getTime() - localStartTime.getTime()) / (1000 * 60);
+                const height = Math.max(durationMinutes, 30);
+              
                 return (
-                  <div 
-                    key={event._id}
-                    style={{
-                      position: 'absolute',
-                      top: `${top}px`,
-                      left: '4px',
-                      right: '4px',
-                      height: `${height}px`,
-                      backgroundColor: event.color || '#4f46e5',
-                      borderRadius: '4px',
-                      color: 'white',
-                      fontSize: '0.75rem',
-                      padding: '4px 8px',
-                      overflow: 'hidden',
-                      zIndex: 5,
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  <EventTile 
+                    key={event._id} 
+                    event={event}
+                    top={top}
+                    height={height}
+                    onDragStart={(draggedEvent) => {
+                      const dragStartEvent = new CustomEvent('eventDragStart', {
+                        detail: { event: draggedEvent }
+                      });
+                      document.dispatchEvent(dragStartEvent);
                     }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      // You could add an event details modal here
-                    }}
-                  >
-                    <div style={{ fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {event.title}
-                    </div>
-                    <div style={{ fontSize: '0.7rem' }}>
-                      {formatTime(localStartTime)} - {formatTime(localEndTime)}
-                    </div>
-                    <button 
-                      style={{
-                        position: 'absolute',
-                        top: '2px',
-                        right: '2px',
-                        backgroundColor: 'rgba(255,255,255,0.3)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '16px',
-                        height: '16px',
-                        fontSize: '10px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer'
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteEvent(event);
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
+                  />
                 );
               })}
             </div>

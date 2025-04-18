@@ -5,21 +5,19 @@ import { createEvent } from '../redux/slices/eventsSlice';
 const EventModal = ({ onClose, initialTime, selectedDate, preset }) => {
   const dispatch = useDispatch();
   
-  // Round the initial time to the nearest 15 minutes
   const roundedTime = new Date(initialTime);
   roundedTime.setMinutes(Math.round(roundedTime.getMinutes() / 15) * 15, 0, 0);
   
-  // Initialize with preset data if available
   const [eventData, setEventData] = useState({
     title: preset?.title || '',
     category: preset?.category || 'work',
     startTime: formatTimeInput(roundedTime),
     endTime: formatTimeInput(new Date(roundedTime.getTime() + 30 * 60000)),
+    eventDate: selectedDate.split('T')[0], 
     date: selectedDate,
     color: preset?.color
   });
   
-  // Format time for input field (HH:MM)
   function formatTimeInput(date) {
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   }
@@ -34,34 +32,26 @@ const EventModal = ({ onClose, initialTime, selectedDate, preset }) => {
   
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // Create a new Date object with the date part only
-    const dateStr = selectedDate.split('T')[0]; // Make sure we only have YYYY-MM-DD
-    
-    // Create start and end time Date objects and preserve local time
-    const [startHours, startMinutes] = eventData.startTime.split(':').map(Number);
-    const [endHours, endMinutes] = eventData.endTime.split(':').map(Number);
-    
-    // Create ISO strings but preserve local timezone information
-    const startDate = new Date(dateStr);
-    startDate.setHours(startHours, startMinutes, 0, 0);
-    
-    const endDate = new Date(dateStr);
-    endDate.setHours(endHours, endMinutes, 0, 0);
-    
+
+    const dateStr = eventData.eventDate || selectedDate.split('T')[0];
+    const startDate = new Date(`${dateStr}T${eventData.startTime}`);
+    const endDate = new Date(`${dateStr}T${eventData.endTime}`);
+
     const eventToCreate = {
       title: eventData.title,
       category: eventData.category,
       startTime: startDate.toISOString(),
       endTime: endDate.toISOString(),
-      date: dateStr
+      date: dateStr,
+      startTimeLocal: eventData.startTime,
+      endTimeLocal: eventData.endTime,
     };
-    
+
+    console.log('Creating Event:', eventToCreate);
     dispatch(createEvent(eventToCreate));
     onClose();
   };
   
-  // Category options with colors and labels
   const categories = [
     { value: 'exercise', label: 'Exercise', color: '#4CAF50' },
     { value: 'eating', label: 'Eating', color: '#FF9800' },
@@ -71,15 +61,12 @@ const EventModal = ({ onClose, initialTime, selectedDate, preset }) => {
     { value: 'social', label: 'Social', color: '#FF5722' }
   ];
   
-  // Modal animation
   const [isVisible, setIsVisible] = useState(false);
   
   useEffect(() => {
-    // Trigger animation after modal is mounted
     setTimeout(() => setIsVisible(true), 10);
   }, []);
   
-  // Enhanced modal styles
   const modalOverlayStyle = {
     position: 'fixed',
     top: 0,
@@ -191,20 +178,16 @@ const EventModal = ({ onClose, initialTime, selectedDate, preset }) => {
     boxShadow: '0 1px 3px rgba(79, 70, 229, 0.25)'
   };
   
-  // Handle input focus states
   const [focusedInput, setFocusedInput] = useState(null);
   
-  // Helper to get contrasting text color
   const getContrastText = (backgroundColor) => {
     const hex = backgroundColor.replace('#', '');
     const r = parseInt(hex.substr(0, 2), 16);
     const g = parseInt(hex.substr(2, 2), 16);
     const b = parseInt(hex.substr(4, 2), 16);
     
-    // Calculate brightness
     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
     
-    // Return black or white based on brightness
     return brightness > 140 ? '#1e293b' : '#ffffff';
   };
   
@@ -212,7 +195,7 @@ const EventModal = ({ onClose, initialTime, selectedDate, preset }) => {
     <div style={modalOverlayStyle} onClick={onClose}>
       <div 
         style={modalContentStyle}
-        onClick={e => e.stopPropagation()} // Prevent closing when clicking inside
+        onClick={e => e.stopPropagation()} 
       >
         <h2 style={{ 
           fontSize: '1.5rem', 
@@ -238,6 +221,21 @@ const EventModal = ({ onClose, initialTime, selectedDate, preset }) => {
               placeholder="Enter event title"
               style={focusedInput === 'title' ? inputFocusStyle : inputStyle}
               onFocus={() => setFocusedInput('title')}
+              onBlur={() => setFocusedInput(null)}
+            />
+          </div>
+
+          <div style={formGroupStyle}>
+            <label style={labelStyle} htmlFor="eventDate">Date</label>
+            <input
+              type="date"
+              id="eventDate"
+              name="eventDate"
+              value={eventData.eventDate || selectedDate.split('T')[0]}
+              onChange={handleChange}
+              required
+              style={focusedInput === 'eventDate' ? inputFocusStyle : inputStyle}
+              onFocus={() => setFocusedInput('eventDate')}
               onBlur={() => setFocusedInput(null)}
             />
           </div>

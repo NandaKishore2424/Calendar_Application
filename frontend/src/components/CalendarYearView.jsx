@@ -10,14 +10,12 @@ const CalendarYearView = ({ selectedDate, onMonthClick }) => {
     months.push(new Date(year, i, 1));
   }
   
-  // Check if a month is the current month
   const isCurrentMonth = (date) => {
     const today = new Date();
     return date.getMonth() === today.getMonth() && 
            date.getFullYear() === today.getFullYear();
   };
   
-  // Check if a month is the selected month
   const isSelectedMonth = (date) => {
     const selected = new Date(selectedDate);
     return date.getMonth() === selected.getMonth() && 
@@ -88,14 +86,12 @@ const CalendarYearView = ({ selectedDate, onMonthClick }) => {
     borderRadius: '50%'
   };
   
-  // Render mini month calendar
   const renderMiniMonth = (date) => {
     const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
     const startDayOfWeek = firstDay.getDay(); // 0 = Sunday, 6 = Saturday
     const daysInMonth = getDaysInMonth(date);
     
     const days = [];
-    // Empty cells for days before the 1st
     for (let i = 0; i < startDayOfWeek; i++) {
       days.push(<div key={`empty-${i}`} style={miniDayStyle}></div>);
     }

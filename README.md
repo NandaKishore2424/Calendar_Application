@@ -5,8 +5,6 @@
 Calendar+ is a full-stack web application for managing your schedule, goals, and tasks in one unified interface. This modern productivity tool combines calendar functionality with goal-setting and task management, making it perfect for personal and professional use.
 
 
-**Live Demo:** [https://frontend-azure-omega-21.vercel.app/](https://frontend-azure-omega-21.vercel.app/)
-
 # ✨ Features
 
 ## 📆 Calendar Management

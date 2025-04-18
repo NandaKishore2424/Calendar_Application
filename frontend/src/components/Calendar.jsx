@@ -14,52 +14,111 @@ const Calendar = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [eventPreset, setEventPreset] = useState(null);
-  const [viewMode, setViewMode] = useState('week'); // day, week, month, year
+  const [viewMode, setViewMode] = useState('week'); 
   const [draggedEvent, setDraggedEvent] = useState(null);
   
-  // Generate time slots from 7 AM to 9 PM
   const timeSlots = generateTimeSlots(15, 7, 21);
   
-  // Fetch events when selectedDate changes
   useEffect(() => {
-    dispatch(fetchEvents(selectedDate));
-  }, [dispatch, selectedDate]);
+    dispatch(fetchEvents()); 
+  }, [dispatch]); 
   
-  // Add to useEffect in Calendar.jsx
   useEffect(() => {
+    console.log("Setting up drag and drop event listeners");
+
+    const handleEventDragStart = (e) => {
+      const { event } = e.detail;
+      console.log('Event drag started:', event?.title || 'Unknown event'); 
+      setDraggedEvent(event);
+    };
+
     const handleCalendarDrop = (e) => {
+      console.log('✅ CALENDAR RECEIVED DROP EVENT');
       const { date } = e.detail;
-      
-      // If dragging an event
-      if (draggedEvent) {
-        // Calculate duration from original event
+      console.log('Received drop date:', date);
+
+      if (!draggedEvent) {
+        console.warn('Drop occurred, but no event was being dragged.');
+        return;
+      }
+
+      console.log('Processing drop for event:', draggedEvent?.title);
+
+      try {
+        if (!date || isNaN(date.getTime())) {
+          console.error('CRITICAL: Invalid drop date received:', date);
+          return;
+        }
+        
+        if (!draggedEvent._id || !draggedEvent.startTime || !draggedEvent.endTime) {
+          console.error('CRITICAL: Invalid dragged event data:', draggedEvent);
+          return;
+        }
+
         const originalStart = new Date(draggedEvent.startTime);
         const originalEnd = new Date(draggedEvent.endTime);
+
+        if (isNaN(originalStart.getTime()) || isNaN(originalEnd.getTime())) {
+          console.error('CRITICAL: Invalid start/end time in dragged event:', 
+            { start: draggedEvent.startTime, end: draggedEvent.endTime });
+          return;
+        }
+
         const duration = originalEnd.getTime() - originalStart.getTime();
+        const newEndTime = new Date(date.getTime() + duration);
+
+        if (isNaN(newEndTime.getTime())) {
+          console.error('CRITICAL: Calculated new end time is invalid.', 
+            { dropDate: date, duration });
+          return;
+        }
+
+        const formatNum = (num) => String(num).padStart(2, '0');
+        const dateStr = `${date.getFullYear()}-${formatNum(date.getMonth() + 1)}-${formatNum(date.getDate())}`;
         
-        // Create new end time
-        const endTime = new Date(date.getTime() + duration);
+        const startTimeLocal = `${formatNum(date.getHours())}:${formatNum(date.getMinutes())}`;
+        const endTimeLocal = `${formatNum(newEndTime.getHours())}:${formatNum(newEndTime.getMinutes())}`;
         
-        // Update event
+        console.log('Updating event with new times:', {
+          id: draggedEvent._id,
+          from: draggedEvent.startTime,
+          to: date.toISOString()
+        });
+        
         dispatch(updateEvent({
-          id: draggedEvent.id,
+          id: draggedEvent._id,
           eventData: {
+            ...draggedEvent,
             startTime: date.toISOString(),
-            endTime: endTime.toISOString(),
-            date: date.toISOString().split('T')[0]
+            endTime: newEndTime.toISOString(),
+            date: dateStr,
+            startTimeLocal: startTimeLocal,
+            endTimeLocal: endTimeLocal
           }
         }));
         
-        // Clear the dragged event after drop
+        console.log(`Event "${draggedEvent.title}" moved to ${dateStr} at ${startTimeLocal}`);
+        showFeedbackMessage(`Event "${draggedEvent.title}" moved successfully!`);
+      } catch (error) {
+        console.error('Error during event update:', error);
+        showFeedbackMessage('Failed to move event! ' + error.message, 'error');
+      } finally {
         setDraggedEvent(null);
+        console.log('Dragged event state reset');
       }
     };
-    
+
+    // Add listeners
+    document.addEventListener('eventDragStart', handleEventDragStart);
     document.addEventListener('calendarDrop', handleCalendarDrop);
-    return () => document.removeEventListener('calendarDrop', handleCalendarDrop);
-  }, [dispatch, draggedEvent]);
-  
-  // Navigation functions
+
+    return () => {
+      console.log('Removing drag and drop event listeners');
+      document.removeEventListener('eventDragStart', handleEventDragStart);
+      document.removeEventListener('calendarDrop', handleCalendarDrop);
+    };
+  }, [dispatch, draggedEvent]); 
+
   const goToToday = () => {
     dispatch(setSelectedDate(new Date().toISOString().split('T')[0]));
   };
@@ -73,17 +132,14 @@ const Calendar = () => {
         nextDate = getNextDay(currentDate);
         break;
       case 'week':
-        // Add 7 days
         nextDate = new Date(currentDate);
         nextDate.setDate(currentDate.getDate() + 7);
         break;
       case 'month':
-        // Go to next month, same day
         nextDate = new Date(currentDate);
         nextDate.setMonth(currentDate.getMonth() + 1);
         break;
       case 'year':
-        // Go to next year, same month/day
         nextDate = new Date(currentDate);
         nextDate.setFullYear(currentDate.getFullYear() + 1);
         break;
@@ -124,7 +180,6 @@ const Calendar = () => {
     dispatch(setSelectedDate(prevDate.toISOString().split('T')[0]));
   };
   
-  // Open modal when clicking on a time slot
   const handleSlotClick = (slot) => {
     setSelectedSlot(slot);
     setShowModal(true);
@@ -151,7 +206,7 @@ const Calendar = () => {
       
       // Convert Y position to hours (assuming 60px per hour)
       const hourHeight = 60;
-      const droppedHours = (dropY / hourHeight) + 7; // Add 7 because our day starts at 7 AM
+      const droppedHours = (dropY / hourHeight) + 7; 
       
       // Round to nearest interval (15 minutes)
       const hours = Math.floor(droppedHours);
@@ -161,9 +216,7 @@ const Calendar = () => {
       const dropTime = new Date(selectedDate);
       dropTime.setHours(hours, minutes, 0, 0);
       
-      // Check if this is a task or an event based on the data structure
       if (data.id && data.startTime && data.endTime) {
-        // This is an existing event being moved
         const originalStart = new Date(data.startTime);
         const originalEnd = new Date(data.endTime);
         const durationMs = originalEnd - originalStart;
@@ -171,7 +224,6 @@ const Calendar = () => {
         // Apply the same duration to the new time
         const newEndTime = new Date(dropTime.getTime() + durationMs);
         
-        // Dispatch action to update the event
         dispatch(updateEvent({
           id: data.id,
           eventData: {
@@ -181,8 +233,6 @@ const Calendar = () => {
           }
         }));
       } else {
-        // This is a task being converted to an event
-        // Default event duration of 30 minutes
         const endTime = new Date(dropTime.getTime() + 30 * 60000);
         
         // Create a new event from the task
@@ -191,7 +241,6 @@ const Calendar = () => {
           endTime: endTime
         });
         
-        // Open modal with pre-populated data from task
         setEventPreset({
           title: data.title || 'New Event',
           category: data.category || 'work',
@@ -206,7 +255,7 @@ const Calendar = () => {
   };
   
   const handleDragOver = (e) => {
-    e.preventDefault(); // Necessary to allow drop
+    e.preventDefault();
   };
 
   // ===== STYLES =====
@@ -367,7 +416,6 @@ const Calendar = () => {
       case 'day':
         return formatDisplayDate(date);
       case 'week': {
-        // Get start of week (Sunday) and end of week (Saturday)
         const startOfWeek = new Date(date);
         startOfWeek.setDate(date.getDate() - date.getDay());
         
@@ -387,8 +435,6 @@ const Calendar = () => {
         return formatDisplayDate(date);
     }
   };
-  
-  // Render the calendar view based on the selected mode
   const renderCalendarView = () => {
     switch(viewMode) {
       case 'day':
@@ -497,6 +543,35 @@ const Calendar = () => {
     );
   };
   
+  const showFeedbackMessage = (message, type = 'success') => {
+    const messageEl = document.createElement('div');
+    messageEl.textContent = message;
+    messageEl.style.position = 'fixed';
+    messageEl.style.bottom = '20px';
+    messageEl.style.right = '20px';
+    messageEl.style.padding = '10px 20px';
+    messageEl.style.borderRadius = '4px';
+    messageEl.style.color = 'white';
+    messageEl.style.zIndex = '9999';
+    messageEl.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+    messageEl.style.backgroundColor = type === 'success' ? '#10B981' : '#EF4444';
+    
+    // Add to document
+    document.body.appendChild(messageEl);
+    
+    // Animate in
+    messageEl.style.transition = 'all 0.3s ease';
+    messageEl.style.transform = 'translateY(0)';
+    
+    // Remove after timeout
+    setTimeout(() => {
+      messageEl.style.opacity = '0';
+      setTimeout(() => {
+        document.body.removeChild(messageEl);
+      }, 300);
+    }, 3000);
+  };
+
   return (
     <div style={calendarContainerStyle}>
       {/* Calendar header with navigation and view options */}
@@ -576,6 +651,32 @@ const Calendar = () => {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
         }
+        
+        /* Add this for drag feedback */
+        .dragging {
+          opacity: 0.6;
+          transform: scale(0.98);
+          box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes pulse {
+          0% { opacity: 1; }
+          50% { opacity: 0.7; }
+          100% { opacity: 1; }
+        }
+        
+        .dragging {
+          opacity: 0.7;
+          transform: scale(0.98);
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+          animation: pulse 1.5s infinite;
+          cursor: grabbing;
+        }
+        
+        .drop-highlight {
+          background-color: rgba(79, 70, 229, 0.1) !important;
+          transition: background-color 0.2s ease;
+        }
       `}</style>
     </div>
   );
@@ -596,9 +697,8 @@ const CurrentTimeIndicator = () => {
   // Calculate position
   const hours = time.getHours();
   const minutes = time.getMinutes();
-  const top = ((hours - 7) * 60 + minutes) * (15 / 60); // Convert to pixels
+  const top = ((hours - 7) * 60 + minutes) * (15 / 60); 
   
-  // Only show if current time is in view (7am-9pm)
   if (hours < 7 || hours >= 21) return null;
   
   return (

@@ -1,7 +1,6 @@
 import React from 'react';
 
 const CalendarMonthView = ({ selectedDate, events, loading, onDateClick }) => {
-  // Get days in month grid (including days from prev/next months to fill grid)
   const getDaysInMonthGrid = () => {
     const date = new Date(selectedDate);
     const year = date.getFullYear();
@@ -9,7 +8,7 @@ const CalendarMonthView = ({ selectedDate, events, loading, onDateClick }) => {
     
     // First day of month
     const firstDay = new Date(year, month, 1);
-    const firstDayOfWeek = firstDay.getDay(); // 0 = Sunday, 6 = Saturday
+    const firstDayOfWeek = firstDay.getDay(); 
     
     // Last day of month
     const lastDay = new Date(year, month + 1, 0);
@@ -65,11 +64,14 @@ const CalendarMonthView = ({ selectedDate, events, loading, onDateClick }) => {
   
   // Get events for a specific day
   const getDayEvents = (date) => {
-    const dayStr = date.toISOString().split('T')[0];
+    const localDateStr = formatDateToYYYYMMDD(date); 
     return events.filter(event => {
-      const eventDate = new Date(event.date).toISOString().split('T')[0];
-      return eventDate === dayStr;
+      return typeof event.date === 'string' && event.date === localDateStr;
     });
+  };
+
+  const formatDateToYYYYMMDD = (date) => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   };
   
   // Check if a date is today

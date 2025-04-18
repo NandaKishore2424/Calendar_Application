@@ -1,56 +1,54 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { toggleEventExpanded, deleteEvent } from '../redux/slices/eventsSlice';
-import { formatTime, getTimePosition, getEventHeight } from '../utils/dateUtils';
+import { formatTime } from '../utils/dateUtils';
 
-const EventTile = ({ event, onDragStart }) => {
+const getCategoryColor = (category) => {
+  const colors = {
+    exercise: '#4CAF50', 
+    eating: '#FF9800',   
+    work: '#2196F3',     
+    relax: '#9C27B0',  
+    family: '#E91E63',   
+    social: '#FF5722',   
+    default: '#607D8B'   
+  };
+  
+  return colors[category] || colors.default;
+};
+
+const EventTile = ({ event, top, height, onDragStart }) => {
   const dispatch = useDispatch();
   const [isHovered, setIsHovered] = useState(false);
   
-  // Convert event times to Date objects
   const startTime = new Date(event.startTime);
   const endTime = new Date(event.endTime);
   
-  // Calculate position and height based on time
-  const top = getTimePosition(startTime, 60); // 60px per hour
-  const height = getEventHeight(startTime, endTime, 60);
-  
-  // Generate lighter background and darker border colors
-  const bgColor = event.color;
-  
-  // Helper to get contrasting text color
-  const getTextColor = (backgroundColor) => {
-    // Convert hex to RGB
-    const hex = backgroundColor.replace('#', '');
-    const r = parseInt(hex.substr(0, 2), 16);
-    const g = parseInt(hex.substr(2, 2), 16);
-    const b = parseInt(hex.substr(4, 2), 16);
-    
-    // Calculate brightness
+  const getContrastText = (bgColor) => {
+    const color = bgColor.charAt(0) === '#' ? bgColor.substring(1, 7) : bgColor;
+    const r = parseInt(color.substring(0, 2), 16);
+    const g = parseInt(color.substring(2, 2), 16);
+    const b = parseInt(color.substring(4, 2), 16);
     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-    
-    // Return black or white based on brightness
-    return brightness > 140 ? '#1e293b' : '#ffffff';
+    return brightness > 125 ? '#1e293b' : '#ffffff';
   };
   
-  const textColor = getTextColor(bgColor);
+  const backgroundColor = event.color || getCategoryColor(event.category);
+  const textColor = getContrastText(backgroundColor);
   
-  // Event tile base styles
   const eventTileStyle = {
-    position: 'absolute',
+    position: 'absolute', 
     top: `${top}px`,
-    height: `${Math.max(height, 24)}px`, // Minimum height increased
+    height: `${Math.max(height, 30)}px`,
     left: '2px',
     right: '8px',
     padding: '4px 8px',
     borderRadius: '6px',
-    backgroundColor: bgColor,
-    borderLeft: `3px solid ${bgColor}`,
-    color: textColor,
-    fontSize: '0.875rem',
+    backgroundColor: event.color || getCategoryColor(event.category),
+    color: '#fff',
+    fontSize: '0.75rem',
     overflow: 'hidden',
-    zIndex: event.isExpanded ? 30 : (isHovered ? 20 : 10),
-    transition: 'all 0.2s ease',
+    zIndex: 20,
     cursor: 'pointer',
     display: 'flex',
     flexDirection: 'column',
@@ -60,24 +58,34 @@ const EventTile = ({ event, onDragStart }) => {
           ? '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
           : '0 1px 3px rgba(0, 0, 0, 0.1)'),
     opacity: isHovered ? 1 : 0.9,
-    transform: isHovered ? 'translateY(-1px)' : 'none'
+    transform: isHovered ? 'translateY(-1px)' : 'none',
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      bottom: '4px',
+      right: '4px',
+      width: '8px',
+      height: '8px',
+      borderBottom: '2px solid rgba(255,255,255,0.5)',
+      borderRight: '2px solid rgba(255,255,255,0.5)',
+      transform: event.isExpanded ? 'rotate(-135deg)' : 'rotate(45deg)',
+      transition: 'transform 0.2s ease'
+    }
   };
   
-  // Toggle expanded state
   const handleToggleExpand = (e) => {
+    console.log('Event clicked:', event.title);
     e.stopPropagation();
     dispatch(toggleEventExpanded(event._id));
   };
   
-  // Delete event
+  // Delete 
   const handleDelete = (e) => {
     e.stopPropagation();
     
-    // Create a custom confirmation dialog instead of the basic window.confirm
     const confirmDelete = () => {
       dispatch(deleteEvent(event._id));
       
-      // Show temporary success message
       const successMessage = document.createElement('div');
       successMessage.textContent = 'Event deleted';
       successMessage.style.position = 'fixed';
@@ -92,31 +100,36 @@ const EventTile = ({ event, onDragStart }) => {
       
       document.body.appendChild(successMessage);
       
-      // Remove after 3 seconds
       setTimeout(() => {
         document.body.removeChild(successMessage);
       }, 3000);
     };
     
-    // Show dialog (customize to match your app's design)
     if (window.confirm(`Are you sure you want to delete "${event.title}"?`)) {
       confirmDelete();
     }
   };
   
-  // Handle drag and drop
   const handleDragStart = (e) => {
     const eventData = {
+      _id: event._id,
       id: event._id,
-      startTime: event.startTime,
-      endTime: event.endTime
     };
     
     e.dataTransfer.setData('text/plain', JSON.stringify(eventData));
     
-    // Update the draggedEvent state in the parent Calendar component
-    // You'll need to pass this function as a prop to EventTile
+    const draggedElement = e.currentTarget;
+    draggedElement.classList.add('dragging');
+    
     onDragStart(eventData);
+    
+    const handleDragEnd = () => {
+      if (draggedElement) {
+        draggedElement.classList.remove('dragging');
+      }
+      document.removeEventListener('dragend', handleDragEnd);
+    };
+    document.addEventListener('dragend', handleDragEnd);
   };
   
   return (
@@ -128,7 +141,12 @@ const EventTile = ({ event, onDragStart }) => {
           handleDelete(e);
         }
       }}
-      style={eventTileStyle}
+      style={{
+        ...eventTileStyle,
+        height: event.isExpanded ? 'auto' : `${height}px`, 
+        minHeight: `${height}px`, 
+        zIndex: event.isExpanded ? 30 : (isHovered ? 20 : 10) 
+      }}
       onClick={handleToggleExpand}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -187,7 +205,17 @@ const EventTile = ({ event, onDragStart }) => {
           </div>
           
           {event.isExpanded && (
-            <DeleteButton onDelete={handleDelete} isVisible={event.isExpanded} />
+            <div style={{ 
+              marginTop: '8px',
+              padding: '4px',
+              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              animation: 'fadeIn 0.2s ease'
+            }}>
+              <div style={{ marginBottom: '4px' }}>Category: {event.category}</div>
+              <DeleteButton onDelete={handleDelete} isVisible={true} />
+            </div>
           )}
         </div>
       )}
