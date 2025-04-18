@@ -98,8 +98,8 @@ Clean, modern UI with smooth animations
 ### Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/calendar-plus.git  
-cd calendar-plus
+git clone https://github.com/NandaKishore2424/Calendar_application.git  
+cd calendar-live
 
 ```
 
