@@ -4,6 +4,8 @@
 
 Calendar+ is a full-stack web application for managing your schedule, goals, and tasks in one unified interface. This modern productivity tool combines calendar functionality with goal-setting and task management, making it perfect for personal and professional use.
 
+![calendar](https://github.com/user-attachments/assets/0bd8cc27-c6b1-430d-ac98-44bf5d934303)
+
 
 # ✨ Features
 
